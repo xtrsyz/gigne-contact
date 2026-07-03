@@ -30,6 +30,23 @@ function e(?string $s): string
 }
 
 /* =========================================================================
+ * URL HELPERS
+ * ========================================================================= */
+
+/**
+ * Bikin URL detail yang cantik (Pendekatan A): detail/<type>/<value>
+ * Contoh: phone:6281267991717 -> detail/phone/6281267991717
+ * Di-handle balik oleh .htaccess menjadi detail.php?id=<type>:<value>
+ */
+function detailUrl(string $identifier): string
+{
+    [$type, $value] = parseIdentifier($identifier);
+    // rawurlencode tiap segmen (jaga-jaga kalau ada karakter aneh),
+    // slash pemisah tetap literal
+    return 'detail/' . rawurlencode($type) . '/' . rawurlencode($value);
+}
+
+/* =========================================================================
  * NORMALISASI (input -> bentuk kanonik)
  * ========================================================================= */
 
@@ -316,6 +333,10 @@ function listUserTags(int $userId): array
 /**
  * Cari di identifier, name, tag.
  * @param bool $activeOnly true = hanya tampilkan status='active' (untuk publik)
+ *
+ * CATATAN: pakai placeholder berbeda untuk keyword (:kw1, :kw2, :kw3) karena
+ * PDO dengan EMULATE_PREPARES=false tidak mengizinkan satu named placeholder
+ * dipakai lebih dari sekali (menyebabkan HY093).
  */
 function searchTags(string $keyword, bool $activeOnly = false): array
 {
@@ -323,8 +344,9 @@ function searchTags(string $keyword, bool $activeOnly = false): array
     $keyword = trim($keyword);
     $like    = '%' . $keyword . '%';
 
-    $conds  = ["identifier LIKE :kw", "name LIKE :kw", "tag LIKE :kw"];
-    $params = [':kw' => $like];
+    // :kw1/:kw2/:kw3 = nilai sama, placeholder beda (hindari HY093)
+    $conds  = ["identifier LIKE :kw1", "name LIKE :kw2", "tag LIKE :kw3"];
+    $params = [':kw1' => $like, ':kw2' => $like, ':kw3' => $like];
 
     // array_values() penting: pastikan index rapat 0,1,2,... supaya key
     // placeholder (:pv0, :pv1, ...) selalu cocok dengan yang di-bind.
