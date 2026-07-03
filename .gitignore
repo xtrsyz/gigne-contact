@@ -1,0 +1,15 @@
+# Config lokal (jangan commit kredensial DB asli)
+# config/database.php
+
+# Dependencies
+/vendor/
+
+# Logs
+*.log
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
