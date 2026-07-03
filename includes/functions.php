@@ -36,7 +36,7 @@ function e(?string $s): string
 /** Normalisasi nomor telepon Indonesia -> kanonik 62xxxxxxxxxx */
 function normalizePhone(string $raw): string
 {
-    $digits = preg_replace('/\\D+/', '', $raw);   // buang non-digit
+    $digits = preg_replace('/\D+/', '', $raw);   // buang non-digit
     if ($digits === '') return '';
 
     if (str_starts_with($digits, '0'))  return '62' . substr($digits, 1); // 08xx -> 628xx
@@ -57,7 +57,7 @@ function normalizeAccountId(string $dataType, string $accountId): string
 
         // kalau nanti mau rekening angka-only, tinggal buka ini:
         // case 'bri': case 'bca': case 'mandiri':
-        //     return preg_replace('/\\D+/', '', $accountId);
+        //     return preg_replace('/\D+/', '', $accountId);
 
         default:
             return $accountId;
@@ -68,7 +68,7 @@ function normalizeAccountId(string $dataType, string $accountId): string
 function normalizeText(string $s): string
 {
     $s = trim($s);
-    $s = preg_replace('/\\s+/u', ' ', $s);
+    $s = preg_replace('/\s+/u', ' ', $s);
     return mb_strtolower($s, 'UTF-8');
 }
 
@@ -77,7 +77,7 @@ function normalizeUrl(string $url): string
 {
     $url = trim($url);
     if ($url === '') return '';
-    $url = preg_replace('/\\s+/', '', $url);
+    $url = preg_replace('/\s+/', '', $url);
     $url = preg_replace('#^https?://#i', 'https://', $url); // http & https dianggap sama
     return rtrim($url, '/');
 }
@@ -156,6 +156,10 @@ function findRoot(string $identifier, int $maxDepth = 50): string
  * Ambil semua anggota network - Opsi B cukup 1 query.
  *
  * @param bool $activeOnly true = hanya tampilkan status='active' (untuk publik)
+ *
+ * CATATAN: pakai DUA placeholder berbeda (:root1, :root2) untuk nilai yang sama,
+ * karena PDO dengan EMULATE_PREPARES=false tidak mengizinkan satu named
+ * placeholder dipakai lebih dari sekali (menyebabkan HY093).
  */
 function getNetwork(string $identifier, bool $activeOnly = false): array
 {
@@ -163,10 +167,10 @@ function getNetwork(string $identifier, bool $activeOnly = false): array
     $statusClause = $activeOnly ? " AND status = 'active'" : '';
     $stmt = db()->prepare(
         "SELECT * FROM tag
-         WHERE (identifier = :root OR id_link = :root){$statusClause}
+         WHERE (identifier = :root1 OR id_link = :root2){$statusClause}
          ORDER BY id ASC"
     );
-    $stmt->execute([':root' => $root]);
+    $stmt->execute([':root1' => $root, ':root2' => $root]);
     return $stmt->fetchAll();
 }
 
@@ -322,7 +326,10 @@ function searchTags(string $keyword, bool $activeOnly = false): array
     $conds  = ["identifier LIKE :kw", "name LIKE :kw", "tag LIKE :kw"];
     $params = [':kw' => $like];
 
-    foreach (phoneSearchVariants($keyword) as $i => $variant) {
+    // array_values() penting: pastikan index rapat 0,1,2,... supaya key
+    // placeholder (:pv0, :pv1, ...) selalu cocok dengan yang di-bind.
+    $variants = array_values(phoneSearchVariants($keyword));
+    foreach ($variants as $i => $variant) {
         $key          = ":pv$i";
         $conds[]      = "identifier LIKE $key";
         $params[$key] = '%' . $variant . '%';
@@ -339,7 +346,7 @@ function searchTags(string $keyword, bool $activeOnly = false): array
 /** Varian angka buat pencarian phone: 628xxx / 8xxx / 08xxx */
 function phoneSearchVariants(string $keyword): array
 {
-    $digits = preg_replace('/\\D+/', '', $keyword);
+    $digits = preg_replace('/\D+/', '', $keyword);
     if ($digits === '' || strlen($digits) < 4) return []; // kependekan -> skip
 
     $canonical = normalizePhone($digits);
