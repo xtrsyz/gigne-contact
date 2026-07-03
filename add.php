@@ -1,16 +1,30 @@
 <?php
 require_once __DIR__ . '/includes/functions.php';
+require_once __DIR__ . '/includes/header.php';
+require_once __DIR__ . '/includes/footer.php';
 
-$banks = loadBanks();
+startSession();
+requireLogin();
+
+$banks   = loadBanks();
+$user    = currentUser();
 $success = $error = null;
 
-// buat dropdown "hubungkan ke identitas yang sudah ada"
-$existing = db()->query("SELECT identifier, name FROM tag ORDER BY id DESC LIMIT 200")->fetchAll();
+// buat dropdown "hubungkan ke identitas yang sudah ada" - hanya yang aktif
+$existing = db()->prepare("SELECT identifier, name FROM tag WHERE status = 'active' ORDER BY id DESC LIMIT 200");
+$existing->execute();
+$existing = $existing->fetchAll();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
+        verifyCsrf();
+
         if (empty($_POST['data_type']) || empty($_POST['account_id'])) {
             throw new RuntimeException('Type data & ID akun wajib diisi.');
+        }
+
+        if (empty($_POST['disclaimer_agree'])) {
+            throw new RuntimeException('Anda harus menyetujui disclaimer tanggung jawab sebelum menyimpan data.');
         }
 
         $result = saveTag([
@@ -20,46 +34,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'tag'        => trim($_POST['tag'] ?? ''),
             'url'        => trim($_POST['url'] ?? ''),
             'link_to'    => trim($_POST['link_to'] ?? ''),
+            'user_id'    => $user['id'],
         ]);
 
         $success = $result['is_duplicate']
-            ? "Laporan identik sudah ada - tidak dibuat duplikat. (hashid: {$result['hashid']})"
-            : "Data tersimpan! hashid: {$result['hashid']}";
+            ? "Laporan identik sudah ada - tidak dibuat duplikat."
+            : "Data tersimpan!";
     } catch (Throwable $ex) {
         $error = $ex->getMessage();
     }
 }
+
+renderHeader('Input Data Penipuan');
 ?>
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Input Data Penipuan</title>
-    <style>
-        body { font-family: system-ui, sans-serif; max-width: 720px; margin: 2rem auto; padding: 0 1rem; }
-        label { display: block; margin: .75rem 0 .25rem; font-weight: 600; }
-        input, select, textarea { width: 100%; padding: .5rem; box-sizing: border-box; }
-        textarea { min-height: 80px; }
-        button { margin-top: 1rem; padding: .6rem 1.2rem; cursor: pointer; }
-        .alert { padding: .75rem; border-radius: 6px; margin: 1rem 0; }
-        .ok { background: #e6f7e6; color: #1a7f1a; }
-        .err { background: #fde8e8; color: #b91c1c; }
-        nav a { margin-right: 1rem; }
-        small { color: #666; font-weight: 400; }
-    </style>
-</head>
-<body>
-    <nav>
-        <a href="index.php">Cari</a>
-        <a href="add.php">Input Data</a>
-    </nav>
     <h1>Input Data Penipuan</h1>
 
     <?php if ($success): ?><div class="alert ok"><?= e($success) ?></div><?php endif; ?>
     <?php if ($error): ?><div class="alert err"><?= e($error) ?></div><?php endif; ?>
 
     <form method="post">
+        <input type="hidden" name="csrf_token" value="<?= e(csrfToken()) ?>">
+
         <label>Type Data</label>
         <select name="data_type" required>
             <option value="">-- Pilih type data --</option>
@@ -90,7 +85,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <?php endforeach; ?>
         </select>
 
-        <button type="submit">Simpan Data</button>
+        <div class="disclaimer-check">
+            <label style="display:flex;gap:.5rem;align-items:flex-start;font-weight:normal">
+                <input type="checkbox" name="disclaimer_agree" value="1" required style="width:auto;margin-top:.2rem">
+                <span>
+                    Saya bertanggung jawab atas data yang saya input.
+                    Data yang saya masukkan adalah <strong>benar &amp; dapat dipertanggungjawabkan</strong>,
+                    dan saya memahami konsekuensi hukum
+                    (<strong>UU Perlindungan Data Pribadi / pencemaran nama baik</strong>)
+                    bila memasukkan data palsu atau menyesatkan.
+                </span>
+            </label>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Simpan Data</button>
     </form>
-</body>
-</html>
+<?php renderFooter(); ?>

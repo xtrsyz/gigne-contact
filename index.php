@@ -1,38 +1,18 @@
 <?php
 require_once __DIR__ . '/includes/functions.php';
+require_once __DIR__ . '/includes/header.php';
+require_once __DIR__ . '/includes/footer.php';
 
 $keyword  = trim($_GET['q'] ?? '');
-$networks = $keyword !== '' ? searchTags($keyword) : listRecent();
+$networks = $keyword !== '' ? searchTags($keyword, true) : listRecent(30, true);
+
+renderHeader('Tracking Data Penipuan');
 ?>
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Tracking Data Penipuan</title>
-    <style>
-        body { font-family: system-ui, sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
-        nav a { margin-right: 1rem; }
-        .search { display: flex; gap: .5rem; margin: 1rem 0; }
-        .search input { flex: 1; padding: .6rem; }
-        .search button { padding: .6rem 1.2rem; cursor: pointer; }
-        .card { border: 1px solid #ddd; border-radius: 8px; padding: 1rem; margin: 1rem 0; }
-        .badge { display: inline-block; background: #eef; border: 1px solid #dde; border-radius: 4px; padding: .2rem .5rem; font-size: .85rem; margin: .15rem; }
-        .tag-label { display: inline-block; background: #fde8e8; color: #b91c1c; border-radius: 4px; padding: .1rem .5rem; font-size: .8rem; }
-        .meta { color: #666; font-size: .9rem; }
-        a.detail { text-decoration: none; color: inherit; }
-    </style>
-</head>
-<body>
-    <nav>
-        <a href="index.php">Cari</a>
-        <a href="add.php">Input Data</a>
-    </nav>
     <h1>Tracking Data Penipuan</h1>
 
     <form class="search" method="get">
         <input type="text" name="q" value="<?= e($keyword) ?>"
-               placeholder="Cari no rekening / Discord ID / nama / tag...">
+               placeholder="Cari no rekening / Discord ID / nama / tag / no HP...">
         <button type="submit">Cari</button>
     </form>
 
@@ -71,5 +51,4 @@ $networks = $keyword !== '' ? searchTags($keyword) : listRecent();
             </a>
         </div>
     <?php endforeach; ?>
-</body>
-</html>
+<?php renderFooter(); ?>
