@@ -129,6 +129,10 @@ function contentFingerprint(array $value): string
  * CORE: ROOT & NETWORK (Opsi B - id_link selalu nunjuk root)
  * ========================================================================= */
 
+/**
+ * Telusurin rantai id_link sampai ROOT.
+ * TIDAK difilter status supaya rantai jaringan tetap utuh.
+ */
 function findRoot(string $identifier, int $maxDepth = 50): string
 {
     $seen    = [];
@@ -148,13 +152,18 @@ function findRoot(string $identifier, int $maxDepth = 50): string
     return $current;
 }
 
-/** Ambil semua anggota network - Opsi B cukup 1 query */
-function getNetwork(string $identifier): array
+/**
+ * Ambil semua anggota network - Opsi B cukup 1 query.
+ *
+ * @param bool $activeOnly true = hanya tampilkan status='active' (untuk publik)
+ */
+function getNetwork(string $identifier, bool $activeOnly = false): array
 {
     $root = findRoot($identifier);
+    $statusClause = $activeOnly ? " AND status = 'active'" : '';
     $stmt = db()->prepare(
         "SELECT * FROM tag
-         WHERE identifier = :root OR id_link = :root
+         WHERE (identifier = :root OR id_link = :root){$statusClause}
          ORDER BY id ASC"
     );
     $stmt->execute([':root' => $root]);
@@ -188,6 +197,10 @@ function mergeNetworks(string $identA, string $identB): void
  * SAVE (Opsi B + dedup ketat via UNIQUE(hashid))
  * ========================================================================= */
 
+/**
+ * Simpan data.
+ * @param array $input Termasuk kunci opsional 'user_id' (int|null).
+ */
 function saveTag(array $input): array
 {
     $dataType   = trim($input['data_type']);
@@ -208,10 +221,12 @@ function saveTag(array $input): array
     }
     $linkTo = $targetRoot ?? $identifier;
 
+    $userId = isset($input['user_id']) ? (int)$input['user_id'] : null;
+
     // insert; kalau nabrak UNIQUE(hashid) -> duplikat, di-skip (no-op)
     $stmt = db()->prepare(
-        "INSERT INTO tag (hashid, identifier, id_link, name, tag, url, ip)
-         VALUES (?, ?, ?, ?, ?, ?, ?)
+        "INSERT INTO tag (hashid, identifier, id_link, name, tag, url, ip, user_id, status)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active')
          ON DUPLICATE KEY UPDATE id = id"
     );
     $stmt->execute([
@@ -220,6 +235,7 @@ function saveTag(array $input): array
         $input['tag']  ?? null,
         $input['url']  ?? null,
         $_SERVER['REMOTE_ADDR'] ?? null,
+        $userId,
     ]);
 
     $isDuplicate = ($stmt->rowCount() === 0);
@@ -237,10 +253,67 @@ function saveTag(array $input): array
 }
 
 /* =========================================================================
+ * SINGLE TAG
+ * ========================================================================= */
+
+/** Ambil satu baris tag berdasarkan id */
+function getTagById(int $id): ?array
+{
+    $stmt = db()->prepare("SELECT * FROM tag WHERE id = ? LIMIT 1");
+    $stmt->execute([$id]);
+    return $stmt->fetch() ?: null;
+}
+
+/* =========================================================================
+ * SOFT-DELETE
+ * ========================================================================= */
+
+/**
+ * Soft-delete sebuah tag.
+ * Berhasil kalau: $isAdmin = true ATAU baris punya user_id == $byUserId.
+ */
+function softDeleteTag(int $tagId, int $byUserId, bool $isAdmin): bool
+{
+    $tag = getTagById($tagId);
+    if (!$tag) return false;
+
+    if (!$isAdmin && (int)$tag['user_id'] !== $byUserId) {
+        return false; // tidak berhak
+    }
+
+    $stmt = db()->prepare(
+        "UPDATE tag SET status = 'removed', deleted_at = NOW(), deleted_by = ?
+         WHERE id = ?"
+    );
+    $stmt->execute([$byUserId, $tagId]);
+    return $stmt->rowCount() > 0;
+}
+
+/* =========================================================================
+ * USER TAGS
+ * ========================================================================= */
+
+/** Daftar tag milik user tertentu (semua status kecuali removed) */
+function listUserTags(int $userId): array
+{
+    $stmt = db()->prepare(
+        "SELECT * FROM tag
+         WHERE user_id = ? AND status != 'removed'
+         ORDER BY id DESC"
+    );
+    $stmt->execute([$userId]);
+    return $stmt->fetchAll();
+}
+
+/* =========================================================================
  * SEARCH (dengan varian phone 08/628)
  * ========================================================================= */
 
-function searchTags(string $keyword): array
+/**
+ * Cari di identifier, name, tag.
+ * @param bool $activeOnly true = hanya tampilkan status='active' (untuk publik)
+ */
+function searchTags(string $keyword, bool $activeOnly = false): array
 {
     $pdo     = db();
     $keyword = trim($keyword);
@@ -255,11 +328,12 @@ function searchTags(string $keyword): array
         $params[$key] = '%' . $variant . '%';
     }
 
-    $sql  = "SELECT identifier FROM tag WHERE " . implode(' OR ', $conds) . " ORDER BY id DESC";
+    $statusClause = $activeOnly ? " AND status = 'active'" : '';
+    $sql  = "SELECT identifier FROM tag WHERE (" . implode(' OR ', $conds) . "){$statusClause} ORDER BY id DESC";
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
 
-    return groupByNetwork($stmt->fetchAll(PDO::FETCH_COLUMN));
+    return groupByNetwork($stmt->fetchAll(PDO::FETCH_COLUMN), $activeOnly);
 }
 
 /** Varian angka buat pencarian phone: 628xxx / 8xxx / 08xxx */
@@ -282,15 +356,24 @@ function phoneSearchVariants(string $keyword): array
  * LIST & GROUPING
  * ========================================================================= */
 
-function listRecent(int $limit = 30): array
+/**
+ * List record terbaru (homepage), dikelompokin per network.
+ * @param bool $activeOnly true = hanya tampilkan status='active' (untuk publik)
+ */
+function listRecent(int $limit = 30, bool $activeOnly = false): array
 {
-    $stmt = db()->prepare("SELECT identifier FROM tag ORDER BY id DESC LIMIT ?");
+    $statusClause = $activeOnly ? " WHERE status = 'active'" : '';
+    $stmt = db()->prepare("SELECT identifier FROM tag{$statusClause} ORDER BY id DESC LIMIT ?");
     $stmt->bindValue(1, $limit, PDO::PARAM_INT);
     $stmt->execute();
-    return groupByNetwork($stmt->fetchAll(PDO::FETCH_COLUMN));
+    return groupByNetwork($stmt->fetchAll(PDO::FETCH_COLUMN), $activeOnly);
 }
 
-function groupByNetwork(array $identifiers): array
+/**
+ * Dari daftar identifier -> kelompokin jadi array-of-network, tanpa duplikat network.
+ * @param bool $activeOnly true = hanya ambil anggota status='active'
+ */
+function groupByNetwork(array $identifiers, bool $activeOnly = false): array
 {
     $networks  = [];
     $seenRoots = [];
@@ -298,7 +381,91 @@ function groupByNetwork(array $identifiers): array
         $root = findRoot($ident);
         if (isset($seenRoots[$root])) continue;
         $seenRoots[$root] = true;
-        $networks[] = getNetwork($ident);
+        $net = getNetwork($ident, $activeOnly);
+        if (!empty($net)) {
+            $networks[] = $net;
+        }
     }
     return $networks;
+}
+
+/* =========================================================================
+ * DISPUTES (pengajuan sanggah/hapus data dari publik)
+ * ========================================================================= */
+
+/**
+ * Simpan pengajuan sanggah baru (tanpa login).
+ * @return int ID dispute yang baru dibuat
+ */
+function createDispute(array $input): int
+{
+    $tagId      = isset($input['tag_id']) && $input['tag_id'] !== '' ? (int)$input['tag_id'] : null;
+    $identifier = isset($input['identifier']) ? trim($input['identifier']) : null;
+    $reason     = trim($input['reason'] ?? '');
+    $contact    = trim($input['contact'] ?? '') ?: null;
+    $ip         = $_SERVER['REMOTE_ADDR'] ?? null;
+
+    $stmt = db()->prepare(
+        "INSERT INTO disputes (tag_id, identifier, reason, contact, ip)
+         VALUES (?, ?, ?, ?, ?)"
+    );
+    $stmt->execute([$tagId, $identifier, $reason, $contact, $ip]);
+    return (int)db()->lastInsertId();
+}
+
+/** Daftar dispute berdasarkan status */
+function listDisputes(string $status = 'pending'): array
+{
+    $stmt = db()->prepare(
+        "SELECT d.*, t.identifier AS tag_identifier, t.name AS tag_name,
+                u.email AS handler_email
+         FROM disputes d
+         LEFT JOIN tag t ON d.tag_id = t.id
+         LEFT JOIN users u ON d.handled_by = u.id
+         WHERE d.status = ?
+         ORDER BY d.created_at DESC"
+    );
+    $stmt->execute([$status]);
+    return $stmt->fetchAll();
+}
+
+/** Ambil satu dispute berdasarkan id */
+function getDispute(int $id): ?array
+{
+    $stmt = db()->prepare("SELECT * FROM disputes WHERE id = ? LIMIT 1");
+    $stmt->execute([$id]);
+    return $stmt->fetch() ?: null;
+}
+
+/**
+ * Tangani dispute (approve/reject) oleh admin.
+ * Kalau approved dan dispute punya tag_id, otomatis soft-delete data terkait.
+ */
+function handleDispute(int $id, int $adminUserId, string $decision, ?string $adminNote): bool
+{
+    if (!in_array($decision, ['approved', 'rejected'], true)) return false;
+
+    $dispute = getDispute($id);
+    if (!$dispute) return false;
+
+    $pdo = db();
+    $pdo->beginTransaction();
+    try {
+        $pdo->prepare(
+            "UPDATE disputes
+             SET status = ?, handled_by = ?, handled_at = NOW(), admin_note = ?
+             WHERE id = ?"
+        )->execute([$decision, $adminUserId, $adminNote, $id]);
+
+        // kalau approved + ada tag_id -> soft-delete tag terkait
+        if ($decision === 'approved' && !empty($dispute['tag_id'])) {
+            softDeleteTag((int)$dispute['tag_id'], $adminUserId, true);
+        }
+
+        $pdo->commit();
+        return true;
+    } catch (Throwable $ex) {
+        $pdo->rollBack();
+        throw $ex;
+    }
 }

@@ -1,5 +1,6 @@
-# Config lokal (jangan commit kredensial DB asli)
+# Config lokal (jangan commit kredensial asli)
 # config/database.php
+config/auth.php
 
 # Dependencies
 /vendor/

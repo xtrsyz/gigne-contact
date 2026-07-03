@@ -9,7 +9,8 @@ if ($keyword === '') {
     exit;
 }
 
-$networks = searchTags($keyword);
+// Hanya kembalikan data status='active'
+$networks = searchTags($keyword, true);
 
 $out = [];
 foreach ($networks as $net) {

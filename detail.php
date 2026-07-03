@@ -1,10 +1,13 @@
 <?php
 require_once __DIR__ . '/includes/functions.php';
+require_once __DIR__ . '/includes/header.php';
+require_once __DIR__ . '/includes/footer.php';
+
+startSession();
 
 $rawId = trim($_GET['id'] ?? '');
 
 // normalisasi kalau yang dibuka berupa identifier phone
-// (biar buka detail via 08xxx atau 628xxx sama-sama nemu)
 if ($rawId !== '') {
     [$t, $v]    = parseIdentifier($rawId);
     $identifier = makeIdentifier($t, $v);
@@ -12,11 +15,14 @@ if ($rawId !== '') {
     $identifier = '';
 }
 
-$network = $identifier !== '' ? getNetwork($identifier) : [];
+// untuk tampilan publik: hanya status='active'
+$network = $identifier !== '' ? getNetwork($identifier, true) : [];
 
 if (empty($network)) {
     http_response_code(404);
-    echo 'Data tidak ditemukan.';
+    echo '<!DOCTYPE html><html lang="id"><head><meta charset="utf-8"><title>404</title></head><body>';
+    echo '<p>Data tidak ditemukan.</p><a href="/index.php">Kembali</a>';
+    echo '</body></html>';
     exit;
 }
 
@@ -28,53 +34,58 @@ foreach ($network as $n) {
     if (!$name && $n['name']) $name = $n['name'];
     if (!$tagLabel && $n['tag']) $tagLabel = $n['tag'];
 }
-?>
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Detail - <?= e($name ?: $identifier) ?></title>
-    <style>
-        body { font-family: system-ui, sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
-        nav a { margin-right: 1rem; }
-        .section { border: 1px solid #ddd; border-radius: 8px; padding: 1rem; margin: 1rem 0; }
-        table { width: 100%; border-collapse: collapse; }
-        td, th { text-align: left; padding: .45rem .5rem; border-bottom: 1px solid #f0f0f0; vertical-align: top; }
-        .tag-label { display: inline-block; background: #fde8e8; color: #b91c1c; border-radius: 4px; padding: .15rem .6rem; }
-        .meta { color: #666; font-size: .9rem; }
-        .root { color: #1a7f1a; font-weight: 600; }
-        code { background: #f4f4f4; padding: .1rem .35rem; border-radius: 3px; }
-    </style>
-</head>
-<body>
-    <nav>
-        <a href="index.php">Cari</a>
-        <a href="add.php">Input Data</a>
-    </nav>
 
+$user    = currentUser();
+$isAdmin = isAdmin();
+$csrf    = csrfToken();
+
+renderHeader('Detail - ' . ($name ?: $identifier));
+?>
     <h1><?= e($name ?: 'Tanpa nama') ?>
         <?php if ($tagLabel): ?><span class="tag-label"><?= e($tagLabel) ?></span><?php endif; ?>
     </h1>
     <p class="meta"><?= count($network) ?> identitas terhubung - root: <code><?= e($root) ?></code></p>
 
+    <p>
+        <a class="btn" href="/sanggah.php?identifier=<?= urlencode($identifier) ?>">
+            📝 Ajukan Sanggah untuk Data Ini
+        </a>
+    </p>
+
     <div class="section">
         <h2>Semua Identitas Terhubung</h2>
         <table>
-            <tr><th>Type Data</th><th>ID Akun</th><th>Nama</th><th>Terhubung ke</th><th>Waktu</th></tr>
+            <tr>
+                <th>Type Data</th><th>ID Akun</th><th>Nama</th>
+                <th>Terhubung ke</th><th>Waktu</th><th>Aksi</th>
+            </tr>
             <?php foreach ($network as $n):
                 [$type, $acc] = parseIdentifier($n['identifier']);
-                $isRoot = ($n['identifier'] === $root);
+                $isRoot       = ($n['identifier'] === $root);
+                $canDelete    = $user && ($isAdmin || (int)$n['user_id'] === (int)$user['id']);
             ?>
                 <tr>
                     <td><?= e(bankName($type)) ?></td>
                     <td>
                         <strong><?= e($acc) ?></strong>
-                        <?php if ($isRoot): ?><span class="root"> * root</span><?php endif; ?>
+                        <?php if ($isRoot): ?><span class="root"> ★ root</span><?php endif; ?>
                     </td>
                     <td><?= e($n['name']) ?></td>
                     <td><code><?= e($n['id_link'] ?: '-') ?></code></td>
                     <td class="meta"><?= e($n['created_at']) ?></td>
+                    <td>
+                        <?php if ($canDelete): ?>
+                            <form method="post" action="/delete.php"
+                                  onsubmit="return confirm('Hapus data ini?')">
+                                <input type="hidden" name="csrf_token" value="<?= e($csrf) ?>">
+                                <input type="hidden" name="tag_id"
+                                       value="<?= (int)$n['id'] ?>">
+                                <input type="hidden" name="return_id"
+                                       value="<?= e($identifier) ?>">
+                                <button type="submit" class="btn btn-danger btn-sm">Hapus</button>
+                            </form>
+                        <?php endif; ?>
+                    </td>
                 </tr>
             <?php endforeach; ?>
         </table>
@@ -94,12 +105,11 @@ foreach ($network as $n) {
             <ul>
                 <?php foreach ($links as $url => $fromIdent): ?>
                     <li>
-                        <a href="<?= e($url) ?>" target="_blank" rel="noopener"><?= e($url) ?></a>
+                        <a href="<?= e($url) ?>" target="_blank" rel="noopener noreferrer"><?= e($url) ?></a>
                         <span class="meta">(dari <?= e($fromIdent) ?>)</span>
                     </li>
                 <?php endforeach; ?>
             </ul>
         <?php endif; ?>
     </div>
-</body>
-</html>
+<?php renderFooter(); ?>
