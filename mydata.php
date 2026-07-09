@@ -31,24 +31,27 @@ renderHeader('Data Saya');
     <?php if (empty($tags)): ?>
         <p>Anda belum pernah menginput data. <a href="/add.php">Input data sekarang</a>.</p>
     <?php else: ?>
-        <table>
-            <tr>
-                <th>Identifier</th><th>Nama</th><th>Tag</th>
-                <th>Waktu</th><th>Aksi</th>
-            </tr>
+        <table class="responsive-table">
+            <thead>
+                <tr>
+                    <th>Identifier</th><th>Nama</th><th>Tag</th>
+                    <th>Waktu</th><th>Aksi</th>
+                </tr>
+            </thead>
+            <tbody>
             <?php foreach ($tags as $t):
                 [$type, $acc] = parseIdentifier($t['identifier']);
             ?>
                 <tr>
-                    <td>
+                    <td data-label="Identifier">
                         <a href="/<?= detailUrl($t['identifier']) ?>">
                             <strong><?= e($type) ?>:<?= e($acc) ?></strong>
                         </a>
                     </td>
-                    <td><?= e($t['name']) ?></td>
-                    <td><?= e($t['tag']) ?></td>
-                    <td class="meta"><?= e($t['created_at']) ?></td>
-                    <td>
+                    <td data-label="Nama"><?= e($t['name']) ?></td>
+                    <td data-label="Tag"><?= e($t['tag']) ?></td>
+                    <td data-label="Waktu" class="meta"><?= e($t['created_at']) ?></td>
+                    <td data-label="Aksi">
                         <?php if ($t['status'] !== 'removed'): ?>
                             <form method="post" action="/delete.php"
                                   onsubmit="return confirm('Hapus data ini?')">
@@ -62,6 +65,7 @@ renderHeader('Data Saya');
                     </td>
                 </tr>
             <?php endforeach; ?>
+            </tbody>
         </table>
     <?php endif; ?>
 
