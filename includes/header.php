@@ -65,6 +65,39 @@ function renderHeader(string $title = 'Tracking Data Penipuan'): void
         .status-hidden  { color: #b45309; }
         .status-removed { color: #b91c1c; text-decoration: line-through; }
 
+        /* ─────────────── TABEL RESPONSIVE (card di mobile) ─────────────── */
+        .btn-group { display: flex; flex-wrap: wrap; gap: .5rem; }
+        @media (max-width: 640px) {
+            .responsive-table thead { display: none; }
+            .responsive-table, .responsive-table tbody,
+            .responsive-table tr, .responsive-table td { display: block; width: 100%; }
+
+            .responsive-table tr {
+                border: 1px solid #ddd;
+                border-radius: 8px;
+                padding: .5rem .75rem;
+                margin-bottom: .75rem;
+            }
+            .responsive-table td {
+                border: none;
+                padding: .35rem 0;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                gap: 1rem;
+            }
+            .responsive-table td::before {
+                content: attr(data-label);
+                font-weight: 600;
+                color: #666;
+                flex-shrink: 0;
+            }
+            .responsive-table td:not([data-label]) { padding: 0; }
+            .responsive-table td:empty::before { content: ""; }
+
+            .btn-group .btn { flex: 1; text-align: center; }
+        }
+
        /* ─────────────── DARK MODE (auto, ikut setelan OS) ─────────────── */
         @media (prefers-color-scheme: dark) {
             body { background: #121212; color: #e3e3e3; }
@@ -118,7 +151,11 @@ function renderHeader(string $title = 'Tracking Data Penipuan'): void
 
             /* avatar profile (discord/steam) */
             .avyimg { border: 2px solid #333; }
-			
+
+            /* card tabel responsive di dark mode */
+            .responsive-table tr { border-color: #333 !important; }
+            .responsive-table td::before { color: #999 !important; }
+
             /* ─────────────── SELECT2 dark mode ─────────────── */
             /* kotak utama (yang keliatan sebelum diklik) */
             .select2-container--default .select2-selection--single {
