@@ -106,16 +106,18 @@ renderHeader('Panel Admin — Disputes');
                         <label style="font-weight:normal">Catatan admin (opsional):</label>
                         <textarea name="admin_note" style="min-height:60px;margin-bottom:.5rem"
                                   placeholder="Catatan untuk pelapor atau internal..."></textarea>
-                        <button type="submit" name="decision" value="approved"
-                                class="btn btn-primary"
-                                onclick="return confirm('Setujui &amp; hapus data terkait?')">
-                            ✓ Approve
-                        </button>
-                        <button type="submit" name="decision" value="rejected"
-                                class="btn btn-danger" style="margin-left:.5rem"
-                                onclick="return confirm('Tolak pengajuan ini?')">
-                            ✗ Reject
-                        </button>
+                        <div class="btn-group">
+                            <button type="submit" name="decision" value="approved"
+                                    class="btn btn-primary"
+                                    onclick="return confirm('Setujui &amp; hapus data terkait?')">
+                                ✓ Approve
+                            </button>
+                            <button type="submit" name="decision" value="rejected"
+                                    class="btn btn-danger"
+                                    onclick="return confirm('Tolak pengajuan ini?')">
+                                ✗ Reject
+                            </button>
+                        </div>
                     </form>
                 <?php endif; ?>
             </div>
