@@ -214,6 +214,23 @@ function mergeNetworks(string $identA, string $identB): void
     }
 }
 
+function getRealIpAddr()
+{
+    if (!empty($_SERVER['HTTP_CLIENT_IP']))   //check ip from share internet
+    {
+      $ip=$_SERVER['HTTP_CLIENT_IP'];
+    }
+    elseif (!empty($_SERVER['HTTP_X_FORWARDED_FOR']))   //to check ip is pass from proxy
+    {
+      $ip=$_SERVER['HTTP_X_FORWARDED_FOR'];
+    }
+    else
+    {
+      $ip=$_SERVER['REMOTE_ADDR'];
+    }
+    return $ip;
+}
+
 /* =========================================================================
  * SAVE (Opsi B + dedup ketat via UNIQUE(hashid))
  * ========================================================================= */
@@ -255,7 +272,7 @@ function saveTag(array $input): array
         $input['name'] ?? null,
         $input['tag']  ?? null,
         $input['url']  ?? null,
-        $_SERVER['REMOTE_ADDR'] ?? null,
+        getRealIpAddr() ?? null,
         $userId,
     ]);
 
@@ -496,5 +513,103 @@ function handleDispute(int $id, int $adminUserId, string $decision, ?string $adm
     } catch (Throwable $ex) {
         $pdo->rollBack();
         throw $ex;
+    }
+}
+
+/* =========================================================================
+ * PROFILE ENRICHMENT (Discord & Steam) — real-time fetch
+ * ------------------------------------------------------------------------
+ * CATATAN: token diambil dari config/auth.php (define), BUKAN hardcode.
+ * Fetch dilakukan tiap load — sudah di-guard timeout + error handling.
+ * ========================================================================= */
+
+/**
+ * Ambil profil Discord dari user ID.
+ * @return array{name:string, avatar:?string}|null  null kalau gagal/tak ada token
+ */
+function fetchDiscordProfile(string $userId): ?array
+{
+    $userId = preg_replace('/\D+/', '', $userId);
+    if ($userId === '' || !defined('DISCORD_BOT_TOKEN') || DISCORD_BOT_TOKEN === '') {
+        return null;
+    }
+
+    $ctx = stream_context_create(['http' => [
+        'timeout'       => 5,
+        'header'        => "Authorization: Bot " . DISCORD_BOT_TOKEN . "\r\n",
+        'ignore_errors' => true,
+    ]]);
+
+    $raw = @file_get_contents("https://discord.com/api/v10/users/{$userId}", false, $ctx);
+    if ($raw === false) return null;
+
+    $d = json_decode($raw, true);
+    if (!is_array($d) || empty($d['id'])) return null;
+
+    $name = $d['global_name'] ?? $d['username'] ?? '';
+
+    $avatar = null;
+    // if (!empty($d['avatar'])) {
+        $ext    = str_starts_with($d['avatar'], 'a_') ? 'gif' : 'png';
+        $avatar = "https://cdn.discordapp.com/avatars/{$d['id']}/{$d['avatar']}.{$ext}?size=1024";
+    // }
+
+    // Created: ekstrak timestamp dari Snowflake ID (resmi Discord)
+    // (ID >> 22) + Discord epoch (2015-01-01) = ms → detik
+	$bin = decbin($userId);
+	$blen = 64 - strlen($bin);
+	$unixbin = substr($bin, 0, 42-$blen);
+	$created = bindec($unixbin) + 1420070400000;
+
+    return [
+        'name'    => $name,
+        'avatar'  => $avatar,
+        'username'  => $d['username'].'#'.$d['discriminator'],
+        'created' => date("D, d M Y H:i:s T",$created/1000),   // unix timestamp (detik)
+        'url'     => "https://discord.com/users/{$d['id']}",
+    ];
+}
+
+/**
+ * Ambil profil Steam dari SteamID64 (angka desimal, mis. 7656119...).
+ * @return array{name:string, avatar:?string, profileurl:?string}|null
+ */
+function fetchSteamProfile(string $steamId): ?array
+{
+    $steamId = hexdec(strtoupper($steamId));
+    if ($steamId === '' || !defined('STEAM_API_KEY') || STEAM_API_KEY === '') {
+        return null;
+    }
+
+    $url = 'https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/'
+         . '?key=' . urlencode(STEAM_API_KEY)
+         . '&steamids=' . urlencode($steamId);
+
+    $ctx = stream_context_create(['http' => ['timeout' => 5, 'ignore_errors' => true]]);
+    $raw = @file_get_contents($url, false, $ctx);
+    if ($raw === false) return null;
+
+    $d = json_decode($raw, true);
+    $p = $d['response']['players'][0] ?? null;
+    if (!is_array($p)) return null;
+
+    return [
+        'name'       => $p['personaname'] ?? '',
+        'avatar'     => $p['avatarfull']  ?? null,
+        'realname'   => $p['realname']    ?? '',   // sering kosong
+        'url'        => $p['profileurl']  ?? null,
+    ];
+}
+
+/**
+ * Wrapper: ambil profil berdasarkan type + account_id.
+ * Return null kalau bukan discord/steam atau gagal.
+ */
+function fetchProfile(string $dataType, string $accountId): ?array
+{
+    switch (strtolower($dataType)) {
+        case 'discord': return fetchDiscordProfile($accountId);
+        case 'steam':   return fetchSteamProfile($accountId);
+        default:        return null;
     }
 }

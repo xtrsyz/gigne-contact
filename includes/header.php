@@ -25,7 +25,7 @@ function renderHeader(string $title = 'Tracking Data Penipuan'): void
     <title><?= e($title) ?></title>
     <style>
         *, *::before, *::after { box-sizing: border-box; }
-        body { font-family: system-ui, sans-serif; max-width: 960px; margin: 0 auto; padding: 0 1rem 3rem; color: #1a1a1a; }
+        body { font-family: system-ui, sans-serif; max-width: 960px; margin: 0 auto; padding: 0 1rem 3rem; }
         nav { display: flex; flex-wrap: wrap; gap: .5rem; padding: .75rem 0; border-bottom: 1px solid #ddd; margin-bottom: 1rem; align-items: center; }
         nav a { text-decoration: none; color: #1a7f1a; font-weight: 600; }
         nav a:hover { text-decoration: underline; }
@@ -64,20 +64,115 @@ function renderHeader(string $title = 'Tracking Data Penipuan'): void
         .status-active  { color: #1a7f1a; }
         .status-hidden  { color: #b45309; }
         .status-removed { color: #b91c1c; text-decoration: line-through; }
+
+       /* ─────────────── DARK MODE (auto, ikut setelan OS) ─────────────── */
+        @media (prefers-color-scheme: dark) {
+            body { background: #121212; color: #e3e3e3; }
+
+            /* nav */
+            nav { border-bottom-color: #333; }
+            nav a { color: #4ade80; }
+            nav .user-info strong { color: #e3e3e3; }
+
+            /* banner disclaimer */
+            .banner { background: #2a2410; border-color: #6b5e1a; }
+            .banner strong { color: #fbbf24; }
+
+            /* form controls */
+            input, select, textarea {
+                background: #1e1e1e; color: #e3e3e3; border-color: #444;
+            }
+            input::placeholder, textarea::placeholder { color: #888; }
+            input[readonly] { background: #2a2a2a !important; color: #aaa; }
+            label { color: #e3e3e3; }
+
+            /* buttons */
+            button, .btn { background: #2a2a2a; color: #e3e3e3; border-color: #555; }
+            .btn-primary { background: #16a34a; color: #fff; border-color: #16a34a; }
+            .btn-danger  { background: #dc2626; color: #fff; border-color: #dc2626; }
+
+            /* alerts */
+            .ok   { background: #12331b; color: #4ade80; }
+            .err  { background: #3a1414; color: #f87171; }
+            .info { background: #12233f; color: #60a5fa; }
+
+            /* cards & sections */
+            .card, .section { background: #1a1a1a; border-color: #333; }
+            .badge { background: #1e2140; border-color: #33375e; color: #c7d2fe; }
+            .tag-label { background: #3a1414; color: #f87171; }
+            .disclaimer-check { background: #2a2410; border-color: #6b5e1a; }
+
+            /* text & meta */
+            .meta, small { color: #999; }
+
+            /* tables */
+            td, th { border-bottom-color: #2a2a2a; }
+            th { background: #1e1e1e; }
+            code { background: #2a2a2a; color: #e3e3e3; }
+
+            /* links & status */
+            a { color: #60a5fa; }
+            .root, .status-active { color: #4ade80; }
+            .status-hidden  { color: #fbbf24; }
+            .status-removed { color: #f87171; }
+
+            /* avatar profile (discord/steam) */
+            .avyimg { border: 2px solid #333; }
+			
+            /* ─────────────── SELECT2 dark mode ─────────────── */
+            /* kotak utama (yang keliatan sebelum diklik) */
+            .select2-container--default .select2-selection--single {
+                background: #1e1e1e !important;
+                border-color: #444 !important;
+            }
+            .select2-container--default .select2-selection--single
+                .select2-selection__rendered { color: #e3e3e3 !important; }
+            .select2-container--default .select2-selection--single
+                .select2-selection__placeholder { color: #888 !important; }
+            .select2-container--default .select2-selection--single
+                .select2-selection__arrow b { border-color: #888 transparent transparent transparent !important; }
+
+            /* dropdown yang kebuka */
+            .select2-dropdown {
+                background: #1e1e1e !important;
+                border-color: #444 !important;
+            }
+            /* kotak search di dalam dropdown */
+            .select2-container--default .select2-search--dropdown .select2-search__field {
+                background: #2a2a2a !important;
+                color: #e3e3e3 !important;
+                border-color: #555 !important;
+            }
+            /* list opsi */
+            .select2-container--default .select2-results__option {
+                background: #1e1e1e !important;
+                color: #e3e3e3 !important;
+            }
+            /* opsi yang di-hover / lagi disorot */
+            .select2-container--default .select2-results__option--highlighted[aria-selected] {
+                background: #16a34a !important;
+                color: #fff !important;
+            }
+            /* opsi yang udah kepilih */
+            .select2-container--default .select2-results__option[aria-selected="true"] {
+                background: #2a2a2a !important;
+                color: #4ade80 !important;
+            }
+        }
     </style>
 </head>
 <body>
     <nav>
-        <a href="/index.php">🔍 Cari</a>
-        <a href="/add.php">✏️ Input Data</a>
+        <a href="/">🔍 Cari</a>
+        <a href="/add">✏️ Input Data</a>
         <?php if ($user): ?>
-            <a href="/mydata.php">📋 Data Saya</a>
+            <a href="/mydata">📋 Data Saya</a>
         <?php endif; ?>
         <?php if ($admin): ?>
-            <a href="/admin.php">⚙️ Panel Admin</a>
+            <a href="/admin">⚙️ Panel Admin</a>
         <?php endif; ?>
-        <a href="/sanggah.php">📝 Ajukan Sanggah</a>
-        <a href="/disclaimer.php">⚠️ Disclaimer</a>
+        <a href="/sanggah">📝 Ajukan Sanggah</a>
+        <a href="/disclaimer">⚠️ Disclaimer</a>
         <span class="spacer"></span>
         <?php if ($user): ?>
             <span class="user-info">
@@ -85,13 +180,13 @@ function renderHeader(string $title = 'Tracking Data Penipuan'): void
                     <img src="<?= e($user['picture']) ?>" alt="foto">
                 <?php endif; ?>
                 <strong><?= e($user['name'] ?: $user['email']) ?></strong>
-                <form method="post" action="/auth/logout.php" style="display:inline">
+                <form method="post" action="/auth/logout" style="display:inline">
                     <input type="hidden" name="csrf_token" value="<?= e($csrf) ?>">
                     <button type="submit" style="background:none;border:none;color:#b91c1c;cursor:pointer;font-size:.85rem;padding:0">Keluar</button>
                 </form>
             </span>
         <?php else: ?>
-            <a href="/auth/login.php">🔑 Login dengan Google</a>
+            <a href="/auth/login">🔑 Login dengan Google</a>
         <?php endif; ?>
     </nav>
 
@@ -99,8 +194,8 @@ function renderHeader(string $title = 'Tracking Data Penipuan'): void
         <strong>⚠️ Disclaimer:</strong>
         Data di sini bersumber dari laporan komunitas dan <strong>belum tentu terverifikasi</strong>.
         Gunakan sebagai referensi awal, bukan vonis akhir.
-        Jika data keliru, <a href="/sanggah.php">ajukan sanggah di sini</a>.
-        <a href="/disclaimer.php">Baca disclaimer lengkap.</a>
+        Jika data keliru, <a href="/sanggah">ajukan sanggah di sini</a>.
+        <a href="/disclaimer">Baca disclaimer lengkap.</a>
     </div>
     <?php
 }

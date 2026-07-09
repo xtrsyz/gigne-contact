@@ -5,7 +5,7 @@
  * ambil info user, simpan ke tabel users, lalu set session.
  */
 
-require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../../includes/auth.php';
 
 startSession();
 
@@ -94,7 +94,7 @@ $_SESSION['user_data'] = [
 ];
 
 // ── Redirect ke halaman asal ───────────────────────────────────────────────
-$dest = $_SESSION['redirect_after_login'] ?? '/index.php';
+$dest = $_SESSION['redirect_after_login'] ?? '/';
 unset($_SESSION['redirect_after_login']);
 header('Location: ' . $dest);
 exit;
@@ -114,7 +114,7 @@ function showError(string $msg): never
     echo '</head><body>';
     echo '<h1>Login Gagal</h1>';
     echo '<div class="err">' . htmlspecialchars($msg, ENT_QUOTES, 'UTF-8') . '</div>';
-    echo '<p><a href="/auth/login.php">Coba lagi</a> | <a href="/index.php">Kembali ke beranda</a></p>';
+    echo '<p><a href="/auth/login">Coba lagi</a> | <a href="/">Kembali ke beranda</a></p>';
     echo '</body></html>';
     exit;
 }

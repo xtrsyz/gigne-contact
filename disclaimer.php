@@ -72,7 +72,7 @@ renderHeader('Disclaimer & Kebijakan');
             dan ingin dihapus:
         </p>
         <ol>
-            <li>Kunjungi halaman <a href="/sanggah.php"><strong>Ajukan Sanggah</strong></a>.</li>
+            <li>Kunjungi halaman <a href="/sanggah"><strong>Ajukan Sanggah</strong></a>.</li>
             <li>Isi alasan sanggah dengan jelas (sertakan bukti jika ada).</li>
             <li>Pengajuan akan ditinjau oleh admin dalam waktu paling lama <strong>7 hari kerja</strong>.</li>
             <li>Jika disetujui, data akan dihapus dari tampilan publik.</li>
@@ -93,8 +93,8 @@ renderHeader('Disclaimer & Kebijakan');
     </div>
 
     <p style="margin-top:1.5rem">
-        <a href="/index.php">&larr; Kembali ke beranda</a>
+        <a href="/">&larr; Kembali ke beranda</a>
         &nbsp;|&nbsp;
-        <a href="/sanggah.php">Ajukan Sanggah</a>
+        <a href="/sanggah">Ajukan Sanggah</a>
     </p>
 <?php renderFooter(); ?>

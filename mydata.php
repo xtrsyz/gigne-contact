@@ -34,24 +34,19 @@ renderHeader('Data Saya');
         <table>
             <tr>
                 <th>Identifier</th><th>Nama</th><th>Tag</th>
-                <th>Status</th><th>Waktu</th><th>Aksi</th>
+                <th>Waktu</th><th>Aksi</th>
             </tr>
             <?php foreach ($tags as $t):
                 [$type, $acc] = parseIdentifier($t['identifier']);
             ?>
                 <tr>
                     <td>
-                        <a href="/detail.php?id=<?= urlencode($t['identifier']) ?>">
-                            <strong><?= e(bankName($type)) ?>: <?= e($acc) ?></strong>
+                        <a href="/<?= detailUrl($t['identifier']) ?>">
+                            <strong><?= e($type) ?>:<?= e($acc) ?></strong>
                         </a>
                     </td>
                     <td><?= e($t['name']) ?></td>
                     <td><?= e($t['tag']) ?></td>
-                    <td>
-                        <span class="status-<?= e($t['status']) ?>">
-                            <?= e($t['status']) ?>
-                        </span>
-                    </td>
                     <td class="meta"><?= e($t['created_at']) ?></td>
                     <td>
                         <?php if ($t['status'] !== 'removed'): ?>

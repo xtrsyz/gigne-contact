@@ -36,7 +36,7 @@ renderHeader('Tracking Data Penipuan');
         $first = $net[0]['identifier'] ?? '';
     ?>
         <div class="card">
-            <a class="detail" href="detail.php?id=<?= urlencode($first) ?>">
+            <a class="detail" href="/<?= detailUrl($first) ?>">
                 <h3>
                     <?= e($name ?: 'Tanpa nama') ?>
                     <?php if ($tagLabel): ?><span class="tag-label"><?= e($tagLabel) ?></span><?php endif; ?>

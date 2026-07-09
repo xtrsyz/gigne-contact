@@ -73,7 +73,7 @@ renderHeader('Panel Admin — Disputes');
                 <p>
                     <strong>Data terkait:</strong>
                     <?php if ($d['tag_id']): ?>
-                        <a href="/detail.php?id=<?= urlencode($d['tag_identifier'] ?? '') ?>">
+                        <a href="/<?= detailUrl($d['tag_identifier'] ?? '') ?>">
                             <?= e($d['tag_identifier'] ?? "tag #" . $d['tag_id']) ?>
                             <?php if ($d['tag_name']): ?>(<?= e($d['tag_name']) ?>)<?php endif; ?>
                         </a>

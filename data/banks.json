@@ -1,7 +1,7 @@
 {
   "bank": [
     { "id": "nik", "nama_bank": "NIK - KTP" },
-    { "id": "phone", "nama_bank": "Telephone - Phone Number" },
+    { "id": "phone", "nama_bank": "Phone Number" },
     { "id": "discord", "nama_bank": "Discord ID" },
     { "id": "steam", "nama_bank": "Steam ID" },
     { "id": "tnkb", "nama_bank": "Plat Nomor - Tanda Nomor Kendaraan Bermotor" },

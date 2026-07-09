@@ -76,8 +76,8 @@ function requireLogin(): void
 {
     if (!isLoggedIn()) {
         startSession();
-        $_SESSION['redirect_after_login'] = $_SERVER['REQUEST_URI'] ?? '/index.php';
-        header('Location: /auth/login.php');
+        $_SESSION['redirect_after_login'] = $_SERVER['REQUEST_URI'] ?? '/';
+        header('Location: /auth/login');
         exit;
     }
 }
@@ -91,7 +91,7 @@ function requireAdmin(): void
         echo '<!DOCTYPE html><html lang="id"><head><meta charset="utf-8"><title>403 Forbidden</title></head><body>';
         echo '<h1>403 — Akses Ditolak</h1>';
         echo '<p>Halaman ini hanya untuk admin.</p>';
-        echo '<a href="/index.php">Kembali ke beranda</a>';
+        echo '<a href="/">Kembali ke beranda</a>';
         echo '</body></html>';
         exit;
     }

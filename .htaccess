@@ -1,0 +1,19 @@
+RewriteEngine On
+
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+
+# ── Clean URL detail ─────────────────────────────────────────────
+# Format 1 (colon): detail/phone:6281267991717 -> detail.php?id=phone:6281267991717
+#   nangkep kalau ada ':' TAPI nggak ada '/' setelah "detail/"
+RewriteRule ^detail/([^/]+:[^/]+)$ detail.php?id=$1 [B,NE,L,QSA]
+
+# Format 2 (slash): detail/phone/6281267991717 -> detail.php?id=phone:6281267991717
+RewriteRule ^detail/([^/]+)/(.+)$ detail.php?id=$1:$2 [B,NE,L,QSA]
+
+# Fallback: detail/<sesuatu> tanpa pemisah -> teruskan apa adanya
+RewriteRule ^detail/([^/]+)/?$ detail.php?id=$1 [B,NE,L,QSA]
+
+# ── Extensionless: /add -> add.php ───────────────────────────────
+RewriteCond %{REQUEST_FILENAME}.php -f
+RewriteRule ^(.+?)/?$ $1.php [L,QSA]

@@ -11,7 +11,7 @@ startSession();
 requireLogin();
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    header('Location: /index.php');
+    header('Location: /');
     exit;
 }
 
@@ -20,7 +20,7 @@ try {
 } catch (RuntimeException $e) {
     http_response_code(403);
     echo '<!DOCTYPE html><html><body><p>' . e($e->getMessage()) . '</p>';
-    echo '<a href="/index.php">Kembali</a></body></html>';
+    echo '<a href="/">Kembali</a></body></html>';
     exit;
 }
 
@@ -29,18 +29,18 @@ $returnId = trim($_POST['return_id'] ?? '');
 $user     = currentUser();
 
 if ($tagId <= 0) {
-    header('Location: /index.php?msg=invalid');
+    header('Location: /?msg=invalid');
     exit;
 }
 
 $ok = softDeleteTag($tagId, (int)$user['id'], isAdmin());
 
 if ($returnId !== '') {
-    $param = urlencode($returnId);
+    // $param = urlencode($returnId);
     $msg   = $ok ? 'deleted' : 'forbidden';
-    header("Location: /detail.php?id={$param}&msg={$msg}");
+    header("Location: /detail/{$returnId}?msg={$msg}");
 } else {
     $msg = $ok ? 'deleted' : 'forbidden';
-    header("Location: /mydata.php?msg={$msg}");
+    header("Location: /mydata?msg={$msg}");
 }
 exit;
