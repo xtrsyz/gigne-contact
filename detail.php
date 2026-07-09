@@ -198,25 +198,28 @@ renderHeader('Detail - ' . ($name ?: $identifier));
 
     <div class="section">
         <h2>Semua Identitas Terhubung</h2>
-        <table>
-            <tr>
-                <th>Type Data</th><th>ID Akun</th><th>Nama</th>
-                <th>Waktu</th><th>Aksi</th>
-            </tr>
+        <table class="responsive-table">
+            <thead>
+                <tr>
+                    <th>Type Data</th><th>ID Akun</th><th>Nama</th>
+                    <th>Waktu</th><th>Aksi</th>
+                </tr>
+            </thead>
+            <tbody>
             <?php foreach ($network as $n):
                 [$type, $acc] = parseIdentifier($n['identifier']);
                 $isRoot       = ($n['identifier'] === $root);
                 $canDelete    = $user && ($isAdmin || (int)$n['user_id'] === (int)$user['id']);
             ?>
                 <tr>
-                    <td><?= e(bankName($type)) ?></td>
-                    <td>
+                    <td data-label="Type Data"><?= e(bankName($type)) ?></td>
+                    <td data-label="ID Akun">
                         <a href="/detail/<?= e($type) ?>/<?= e($acc) ?>" rel="noopener noreferrer"><strong><?= e($acc) ?></strong></a>
                         <?php if ($isRoot): ?><span class="root"> ★ root</span><?php endif; ?>
                     </td>
-                    <td><?= e($n['name']) ?></td>
-                    <td class="meta"><?= e($n['created_at']) ?></td>
-                    <td>
+                    <td data-label="Nama"><?= e($n['name']) ?></td>
+                    <td data-label="Waktu" class="meta"><?= e($n['created_at']) ?></td>
+                    <td<?= $canDelete ? ' data-label="Aksi"' : '' ?>>
                         <?php if ($canDelete): ?>
                             <form method="post" action="/delete"
                                   onsubmit="return confirm('Hapus data ini?')">
@@ -231,6 +234,7 @@ renderHeader('Detail - ' . ($name ?: $identifier));
                     </td>
                 </tr>
             <?php endforeach; ?>
+            </tbody>
         </table>
     </div>
 
